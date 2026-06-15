@@ -12,8 +12,13 @@ model:
   block_size: 128
   n_layer: 2
   n_head: 4
+  n_kv_head: 2
   n_embd: 128
   dropout: 0.1
+  bias: false
+  rope_theta: 10000.0
+  norm_eps: 0.00001
+  multiple_of: 64
 
 training:
   batch_size: 16
