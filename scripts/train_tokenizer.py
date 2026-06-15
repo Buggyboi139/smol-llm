@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from tokenizers import Tokenizer
+from tokenizers.decoders import ByteLevel as ByteLevelDecoder
 from tokenizers.models import BPE
 from tokenizers.pre_tokenizers import ByteLevel
 from tokenizers.processors import TemplateProcessing
@@ -36,25 +38,42 @@ def main() -> int:
 
     tokenizer = Tokenizer(BPE(unk_token=None))
     tokenizer.pre_tokenizer = ByteLevel(add_prefix_space=False)
+    tokenizer.decoder = ByteLevelDecoder()
 
     trainer = BpeTrainer(
         vocab_size=args.vocab_size,
         min_frequency=args.min_frequency,
         special_tokens=SPECIAL_TOKENS,
+        initial_alphabet=ByteLevel.alphabet(),
         show_progress=True,
     )
 
     tokenizer.train(files, trainer)
     eos_id = tokenizer.token_to_id("<|endoftext|>")
+    if eos_id is None:
+        raise SystemExit("Tokenizer training failed to create <|endoftext|>")
+
     tokenizer.post_processor = TemplateProcessing(
         single="$A",
         special_tokens=[("<|endoftext|>", eos_id)],
     )
 
-    out_path = output_dir / "tokenizer.json"
-    tokenizer.save(str(out_path))
+    tokenizer_path = output_dir / "tokenizer.json"
+    tokenizer.save(str(tokenizer_path))
 
-    print(f"Saved tokenizer: {out_path}")
+    config_path = output_dir / "tokenizer_config.json"
+    tokenizer_config = {
+        "tokenizer_file": str(tokenizer_path),
+        "vocab_size": tokenizer.get_vocab_size(),
+        "requested_vocab_size": args.vocab_size,
+        "eos_token": "<|endoftext|>",
+        "eos_id": eos_id,
+        "type": "byte_level_bpe",
+    }
+    config_path.write_text(json.dumps(tokenizer_config, indent=2) + "\n", encoding="utf-8")
+
+    print(f"Saved tokenizer: {tokenizer_path}")
+    print(f"Saved config: {config_path}")
     print(f"Vocab size: {tokenizer.get_vocab_size()}")
     print(f"EOS id: {eos_id}")
     return 0
