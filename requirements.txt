@@ -1,1 +1,9 @@
-# Placeholder for Python dependencies.
+torch
+numpy
+pyyaml
+tqdm
+tokenizers
+datasets
+huggingface_hub
+safetensors
+pytest
