@@ -9,6 +9,7 @@ from tqdm import trange
 
 from smol_llm.dataset import BinaryTokenDataset
 from smol_llm.model import build_model
+from smol_llm.tokenizer import load_tokenizer
 from smol_llm.utils import append_jsonl, get_device, get_dtype, learning_rate, save_checkpoint, set_seed
 
 
@@ -27,11 +28,28 @@ def estimate_loss(model, train_data, val_data, batch_size: int, eval_iters: int)
     return out
 
 
+def resolve_model_config(config: dict[str, Any]) -> dict[str, Any]:
+    model_cfg = dict(config["model"])
+    tokenizer_path = config.get("data", {}).get("tokenizer")
+
+    if tokenizer_path and Path(tokenizer_path).exists():
+        tokenizer_vocab_size = load_tokenizer(tokenizer_path).get_vocab_size()
+        configured_vocab_size = int(model_cfg.get("vocab_size", tokenizer_vocab_size))
+        if configured_vocab_size != tokenizer_vocab_size:
+            print(
+                "Overriding model vocab_size from "
+                f"{configured_vocab_size} to tokenizer vocab size {tokenizer_vocab_size}"
+            )
+        model_cfg["vocab_size"] = tokenizer_vocab_size
+
+    return model_cfg
+
+
 def train(config: dict[str, Any]) -> None:
     set_seed(int(config.get("seed", 1337)))
 
     data_cfg = config["data"]
-    model_cfg = config["model"]
+    model_cfg = resolve_model_config(config)
     train_cfg = config["training"]
     out_cfg = config["output"]
 
@@ -40,14 +58,16 @@ def train(config: dict[str, Any]) -> None:
     print(f"Device: {device}")
     print(f"Dtype: {dtype}")
 
-    train_data = BinaryTokenDataset(data_cfg["train_bin"], model_cfg["block_size"], device)
-    val_data = BinaryTokenDataset(data_cfg["val_bin"], model_cfg["block_size"], device)
+    token_dtype = data_cfg.get("token_dtype", "auto")
+    train_data = BinaryTokenDataset(data_cfg["train_bin"], model_cfg["block_size"], device, dtype=token_dtype)
+    val_data = BinaryTokenDataset(data_cfg["val_bin"], model_cfg["block_size"], device, dtype=token_dtype)
 
-    model = build_model(model_cfg).to(device)
-    print(f"Parameters: {sum(p.numel() for p in model.parameters()):,}")
+    raw_model = build_model(model_cfg).to(device)
+    model = raw_model
+    print(f"Parameters: {sum(p.numel() for p in raw_model.parameters()):,}")
 
     if bool(train_cfg.get("compile", False)) and hasattr(torch, "compile"):
-        model = torch.compile(model)
+        model = torch.compile(raw_model)
 
     optimizer = torch.optim.AdamW(
         model.parameters(),
@@ -103,7 +123,7 @@ def train(config: dict[str, Any]) -> None:
 
         if step % save_interval == 0 or step == max_steps - 1:
             payload = {
-                "model": model.state_dict(),
+                "model": raw_model.state_dict(),
                 "model_config": model_cfg,
                 "config": config,
                 "step": step,
