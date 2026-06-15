@@ -1,1 +1,10 @@
-# Placeholder for Python project metadata.
+[project]
+name = "smol-llm"
+version = "0.1.0"
+description = "A tiny GPT-style language model built from scratch for local experimentation."
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
