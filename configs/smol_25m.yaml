@@ -5,6 +5,7 @@ data:
   train_bin: data/processed/train.bin
   val_bin: data/processed/val.bin
   tokenizer: data/tokenizer/tokenizer.json
+  token_dtype: auto
 
 model:
   vocab_size: 16000
