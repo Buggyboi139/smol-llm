@@ -86,8 +86,9 @@ def train(config: dict[str, Any]) -> None:
     eval_iters = int(train_cfg["eval_iters"])
     save_interval = int(train_cfg["save_interval"])
 
-    use_autocast = device.type == "cuda" and dtype in {torch.float16, torch.bfloat16}
-    scaler = torch.cuda.amp.GradScaler(enabled=(device.type == "cuda" and dtype == torch.float16))
+    use_autocast = device.type in {"cuda", "xpu"} and dtype in {torch.float16, torch.bfloat16}
+    use_scaler = device.type == "cuda" and dtype == torch.float16
+    scaler = torch.amp.GradScaler(device.type, enabled=use_scaler)
 
     pbar = trange(max_steps, desc="training")
     for step in pbar:
@@ -104,7 +105,7 @@ def train(config: dict[str, Any]) -> None:
         x, y = train_data.get_batch(batch_size)
         optimizer.zero_grad(set_to_none=True)
 
-        with torch.autocast(device_type=device.type, dtype=dtype, enabled=use_autocast):
+        with torch.amp.autocast(device_type=device.type, dtype=dtype, enabled=use_autocast):
             _, loss = model(x, y)
 
         scaler.scale(loss).backward()
