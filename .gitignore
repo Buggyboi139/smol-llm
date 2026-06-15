@@ -1,1 +1,23 @@
-# Placeholder for ignored local files.
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Large local data
+data/raw/**
+data/processed/**/*.bin
+data/processed/finenews_text/**
+data/tokenizer/**
+!data/raw/tiny_sample.txt
+!data/processed/.gitkeep
+!data/tokenizer/.gitkeep
+
+# Model outputs
+checkpoints/**
+!checkpoints/.gitkeep
+logs/**
+!logs/.gitkeep
+
+# OS/editor junk
+.DS_Store
+.vscode/
