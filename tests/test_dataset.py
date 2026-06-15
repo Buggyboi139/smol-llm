@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 
 from smol_llm.dataset import BinaryTokenDataset
@@ -12,5 +13,5 @@ def test_binary_token_dataset_batch_shapes(tmp_path):
 
     assert x.shape == (8, 16)
     assert y.shape == (8, 16)
-    assert x.dtype.name == "torch.int64"
-    assert y.dtype.name == "torch.int64"
+    assert x.dtype == torch.long
+    assert y.dtype == torch.long
