@@ -1,3 +1,5 @@
+✨Vibe-Code✨
+
 # smol-llm
 
 A tiny GPT-style causal language model built from scratch for local experiments.
@@ -65,7 +67,7 @@ python scripts/train.py --config configs/smoke.yaml
 python scripts/generate.py \
   --config configs/smoke.yaml \
   --checkpoint checkpoints/latest.pt \
-  --prompt "The government announced"
+  --prompt "Hello world"
 ```
 
 ## Repo layout
